@@ -112,8 +112,13 @@ def get_all_cards():
 @app_views.route('/cards/<card_number>', methods=['GET'], strict_slashes=False)
 def get_card_details(card_number):
     """Get a card registered to a user by card id"""
+    
     try:
         card = cd.find_card_number(card_number)
+        if card is None:
+            return jsonify({'error': 'Card not found'}), 404
+        if card.card_number != card_number:
+            return jsonify({'error': 'Forbidden'}), 403
         expiry = datetime.strptime(str(card['expiry_date']), '%Y-%m-%d %H:%M:%S')
         return jsonify({'card_details': {
             'customer_id': card['customer_id'],
@@ -133,6 +138,9 @@ def get_card_details(card_number):
 @app_views.route('/cards/<card_number>', methods=["PATCH"], strict_slashes=False)
 def update_card_status(card_number, status=""):
     """Updates the status of a virtual card"""
+    customer_id = request.headers.get('customerid', None)
+    if customer_id is None:
+        return jsonify({'error': 'Service is unable to identify this customer'}), 400
     data = request.get_json()
     if 'status' in data:
         status = data['status']
